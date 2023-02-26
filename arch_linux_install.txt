@@ -1,0 +1,203 @@
+УСТАНОВКА ARCHLINUX UEFI
+
+1. Проверка интернет соединения
+        #ping archlinux.org
+
+2. Синхронизация времени с интернетом
+        #timedatectl set-ntp true
+    проверка
+        #timedatectl status
+
+3. Разметка диска
+    просмотр подключенных дисков:
+        #fdisk -l
+        #lsblk
+    разметить диск (к примеру /dev/sda)
+        #fdisk /dev/sda
+        - создать разметку диска GPT
+        - создать раздел boot efi +550M, тип файловой системы "EFI system"
+        - создать раздел swap +2G, тип файловой системы "SWAP linux"
+        - создать остальные разделы, тип файловой системы "Linux system"
+
+4. Форматирование разделов
+    - раздел boot efi
+        #mkfs.fat -F32 /dev/sda1
+    - раздел swap
+        #mkswap /dev/sda2
+    - включить swap
+        #swapon /dev/sda2
+    - остальные разделы
+        #mkfs.ext4 /dev/sda3
+
+5. Настройка зеркала yandex.ru
+    в файл
+        #vim /etc/pacman.d/mirrorlist
+    первой строкой записать
+        Server = https://mirror.yandex.ru/archlinux/$repo/os/$arch
+    при менение изменений
+        #pacman -Syyu
+
+6. Установка системы
+    монтируем boot-раздел
+        #mount /dev/sda1 /mnt/boot
+    монтируем корень системы
+        #mount /dev/sda3 /mnt
+    устанока пакетов системы
+        #pacstrap /mnt base linux linux-firmware
+
+7. Генерация таблицы разделов дисков
+        #genfstab -U /mnt >> /mnt/etc/fstab
+
+8. Переход в установленную систему
+    смена корня системы
+        #arch-chroot /mount
+
+9. Настройка тайм-зоны
+        #ln -sf /usr/share/zoneinfo/[табом выбераем тайм-зону] /etc/localtime
+
+10. Синхронизация времени системы с материнской платой ПК
+        #hwclock --systohc
+
+11. Установка редактора vim
+        #pacman -S vim
+        #EDITOR=vim
+
+12. Настройка локали
+    в файле /etc/locale.gen раскоментировать строки:
+        en_US.UTF-8 UTF-8
+        ru_RU.UTF-8 UTF-8
+    генерация локалей
+        #locale-gen
+
+13. Настройка языка консоли, добавление Кириллицы
+    создаем файл:
+        #vim /etc/vconsole.conf
+    добавляем строки
+        KEYMAP=ru
+        FONT=cyr-sun16
+
+14. Установка языка системы по умолчанию
+    редактируем файл:
+        #vim /etc/locale.conf
+    вариан: LANG="en_US.UTF-8" - английский
+    вариан: LANG="ru_RU.UTF-8" - русский
+
+15. Настройка имени ПК
+        #echo "[имя_ПК]">/etc/hostname
+    добавить в файл /etc/hosts
+        127.0.0.1    localhost
+        ::1          localhost
+        127.0.1.1    [имя_ПК].localdomain    [имя_ПК]
+
+16. Настройка пользователей
+    пароль для root:
+        #passwd
+    добавляем пользователя
+        #useradd -m [имя_пользователя]
+    пароль пользователя
+        #passwd [имя_пользователя]
+    добавляем пользователя в группы
+        #usermod -aG wheel,audio,video,storage [имя_пользователя]
+
+17. Привелегии root для простого пользователя
+        #pacman -S sudo
+    редактируем файл конфигурации sudo
+        #visudo
+            раскоментировать строку
+            %wheel ALL=(ALL) ALL
+
+18. Настройка сети
+    установка NetworkManager
+        #pacman -S networkmanager
+    включаем
+        #systemctl enable NetworkManager
+
+19. Установка менджера загрузки
+    установка
+        #pacman -S sddm
+    включение
+        #systemctl enable sddm
+
+20. Установка загрузчика GRUB ( НЕ ИСПЫТАНО! )
+    установка неоходимых пакеты:
+        #pacman -S grub efibootmgr os-prober
+    установка GRUB в систему:
+        #grub-install --target=x86_64-efi --efi-directory=/boot
+            --bootloader-id=grub
+    конфигурация GRUB:
+        #grub-mkconfig -o /boot/grub/grub.cfg
+
+21. Завершение установки
+    выход arch-chroot'а
+        #exit
+    размотируем диски
+        #umount /mnt -l
+    перезагрузка
+        #reboot now
+
+УСТАНОВКА ГРАФИЧЕСКОГО ОКРУЖЕНИЯ
+
+1. Установка видеодрайвера
+    для всего
+        $sudo pacman -S mesa
+    для ATI Radeon
+        $sudo pacman -S xf86-video-ati
+
+2. Установка KDE Plasma
+        $sudo pacman -S plasma
+        $sudo pacman -S plasma-meta
+        $sudo pacman -S plasma-desktop
+
+3. Автологин
+    System settings->Startup and Shutdown->Login Screen(SDDM)->[Behavior...]
+
+УСТАНОВКА ПРИНТЕРА HP LaserJet Pro 1102 (HP, Inc LaserJet P1102)
+
+1. Установка неоходимых утилит:
+    просмотр подключенных usb-устройств
+        $sudo pacman -S usbutils
+    просмотр usb-устройств
+        $lsusb
+    программа для загрузки файлов
+        $sudo pacman -S wget
+2. Сервер печати CUPS
+    установка
+        $sudo pacman -S cups
+    включение
+        $sudo systemctl enable --now cups
+
+3. Добавление пользователя в группу lp устройств принтера
+    добавление
+    	 $sudo usermod -aG lp [имя_пользователя]
+    потом нужно выполнить перелогин в системе
+
+4. Драйвера HP
+    установка
+        $sudo pacman -S hplip
+    подключение плагина
+        $hp-plugin -i
+    настройка
+        $hp-setup -i
+
+5. Графическая утилита настройки принтеров
+    установка
+        $sudo pacman -S system-config-printer
+
+УСТАНОВКА ПРОГРАММ ИЗ РЕПОЗИТАРИЯ AUR
+(на примере AnyDesk)
+
+1. Установка инструментов для сборки (если необходимо)
+    пакет для разработки
+        $sudo pacman -S base-devel
+    система контроля версий
+        $sudo pacman -S git
+
+2. Находим на https://aur.archlinux.org/ нужный пакет (AnyDesk)
+    клонируем пакет в целевую папку
+        $git clone https://aur.archlinux.org/anydesk-bin.git
+    заходим в целевую папку
+        $cd anydesk-bin
+    собираем пакет
+        $makepkg -si
+        -s позволит удовлетворить зависимости
+        -i сразу установит программу после сборки
