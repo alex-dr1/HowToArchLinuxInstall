@@ -201,3 +201,21 @@
         $makepkg -si
         -s позволит удовлетворить зависимости
         -i сразу установит программу после сборки
+
+ВЕТКА GIT В КОМАНДНОЙ СТРОКЕ
+В файл ~/.bashrc добвать строки в начало
+
+# enable colored prompt for git branches
+# using parse_git_branch
+parse_git_branch() {
+ git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'
+}
+
+где идет в присвоении PS1 добавить $(parse_git_branch)
+пример:
+	if [[ ${EUID} == 0 ]] ; then
+		PS1='\[\033[01;31m\][\h\[\033[01;36m\] \W$(parse_git_branch)\[\033[01;31m\]]\$\[\033[00m\] '
+	else
+		PS1='\[\033[01;32m\][\u@\h\[\033[01;37m\] \W$(parse_git_branch)\[\033[01;32m\]]\$\[\033[00m\] '
+	fi
+
